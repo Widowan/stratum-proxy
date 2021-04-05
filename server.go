@@ -12,11 +12,11 @@ import (
 	"regexp"
 	"time"
 
+	"net/http"
+
 	rpc2 "github.com/miningmeter/rpc2"
 	"github.com/miningmeter/rpc2/stratumrpc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"net/http"
 )
 
 /*
@@ -80,7 +80,12 @@ func main() {
 	LogInfo("proxy : web server serve on: %s", "", webAddr)
 	// Users.
 	http.Handle("/api/v1/users", &API{})
-	// Metrics.
+	http.Handle("/api/v1/getallusers", &API{})
+	http.Handle("/api/v1/getallworkers", &API{})
+	http.Handle("/api/v1/changepool", &API{})
+	http.HandleFunc("/webui", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./ui.html")
+	})
 	http.Handle("/metrics", promhttp.Handler())
 	go http.ListenAndServe(webAddr, nil)
 
@@ -129,7 +134,7 @@ func WaitWorker(conn net.Conn, server *rpc2.Server) {
 	addr := conn.RemoteAddr().String()
 	LogInfo("%s : try connect to proxy", "", addr)
 	// Initializing of worker.
-	w := &Worker{addr: addr}
+	w := &Worker{Addr: addr}
 	// Linking of JSON-RPC connection to worker.
 	state := rpc2.NewState()
 	state.Set("worker", w)

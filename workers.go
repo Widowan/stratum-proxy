@@ -10,14 +10,14 @@ Workers - array of connected workers.
 */
 type Workers struct {
 	mutex   sync.RWMutex
-	workers map[string]*Worker
+	Workers map[string]*Worker
 }
 
 func (w *Workers) add(worker *Worker) bool {
 	id := worker.GetID()
 
 	if wr := w.get(id); wr == nil {
-		w.workers[id] = worker
+		w.Workers[id] = worker
 	} else {
 		return false
 	}
@@ -26,7 +26,7 @@ func (w *Workers) add(worker *Worker) bool {
 }
 
 func (w *Workers) get(id string) *Worker {
-	if worker, ok := w.workers[id]; ok {
+	if worker, ok := w.Workers[id]; ok {
 		return worker
 	}
 
@@ -35,7 +35,7 @@ func (w *Workers) get(id string) *Worker {
 
 func (w *Workers) remove(id string) {
 	if worker := w.get(id); worker != nil {
-		delete(w.workers, id)
+		delete(w.Workers, id)
 	}
 
 	return
@@ -46,7 +46,7 @@ Init - init of array.
 */
 func (w *Workers) Init() {
 	w.mutex.Lock()
-	w.workers = make(map[string]*Worker)
+	w.Workers = make(map[string]*Worker)
 	w.mutex.Unlock()
 }
 

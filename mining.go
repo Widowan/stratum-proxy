@@ -61,13 +61,13 @@ func (*Mining) Subscribe(client *rpc2.Client, params []interface{}, res *interfa
 		LogInfo("%s > mining.subscribe: %s", sID, wAddr, request.ua)
 	}
 
-	w.ua = request.ua
+	w.Ua = request.ua
 
 	w.mutex.RLock()
-	wID := w.id
-	wAddr = w.addr
-	extranonce1 := w.pool.extranonce1
-	extranonce2size := w.pool.extranonce2size
+	wID := w.Id
+	wAddr = w.Addr
+	extranonce1 := w.Pool.extranonce1
+	extranonce2size := w.Pool.extranonce2size
 	w.mutex.RUnlock()
 
 	// The sending mining.subscribe response message to the worker.
@@ -105,10 +105,10 @@ func (*Mining) Authorize(client *rpc2.Client, params []interface{}, res *bool) e
 	temp, _ := client.State.Get("worker")
 	w := temp.(*Worker)
 	w.mutex.RLock()
-	sID := w.id
-	wAddr := w.addr
+	sID := w.Id
+	wAddr := w.Addr
 	wDifficulty := w.difficulty
-	pJob := w.pool.job
+	pJob := w.Pool.job
 	w.mutex.RUnlock()
 
 	LogInfo("%s > mining.authorize", sID, wAddr)
@@ -141,7 +141,7 @@ func (*Mining) Authorize(client *rpc2.Client, params []interface{}, res *bool) e
 	LogInfo("%s < mining.set_difficulty: %f", sID, wAddr, wDifficulty)
 
 	w.mutex.RLock()
-	pJob = w.pool.job
+	pJob = w.Pool.job
 	w.mutex.RUnlock()
 
 	if pJob != nil {
@@ -171,16 +171,16 @@ func (*Mining) Submit(client *rpc2.Client, params []interface{}, res *bool) erro
 	w := temp.(*Worker)
 
 	w.mutex.RLock()
-	sID := w.id
-	wAddr := w.addr
-	wUser := w.user
-	wHash := w.hash
+	sID := w.Id
+	wAddr := w.Addr
+	wUser := w.User
+	wHash := w.Hash
 	wDivider := w.divider
 	wExt := w.extensions
-	pAddr := w.pool.addr
-	pUser := w.pool.user
-	pClient := w.pool.client
-	pExt := w.pool.extensions
+	pAddr := w.Pool.Addr
+	pUser := w.Pool.User
+	pClient := w.Pool.client
+	pExt := w.Pool.extensions
 	w.mutex.RUnlock()
 
 	if sErr, err := mining.checkAuthorized(w); err != nil {
@@ -315,12 +315,12 @@ func (*Mining) Notify(client *rpc2.Client, params []interface{}, res *interface{
 	jobID := params[0].(string)
 
 	w.mutex.Lock()
-	sID := w.id
-	wAddr := w.addr
+	sID := w.Id
+	wAddr := w.Addr
 	wClient := w.client
-	pAddr := w.pool.addr
+	pAddr := w.Pool.Addr
 
-	w.pool.job = params
+	w.Pool.job = params
 	w.mutex.Unlock()
 
 	LogInfo("%s > mining.notify: %s", sID, pAddr, jobID)
@@ -349,12 +349,12 @@ func (*Mining) SetDifficulty(client *rpc2.Client, params []interface{}, res *int
 	difficulty := params[0].(float64)
 
 	w.mutex.RLock()
-	sID := w.id
-	wAddr := w.addr
-	wUser := w.user
+	sID := w.Id
+	wAddr := w.Addr
+	wUser := w.User
 	wDifficulty := w.difficulty
-	wHash := w.hash
-	pAddr := w.pool.addr
+	wHash := w.Hash
+	pAddr := w.Pool.Addr
 	w.mutex.RUnlock()
 
 	// The saving of difficulty in the metrics.
@@ -427,7 +427,7 @@ func (*Mining) Configure(client *rpc2.Client, params []interface{}, res *interfa
 	}
 
 	a := new(MiningConfigureResponse)
-	a.extensions = w.pool.extensions
+	a.extensions = w.Pool.extensions
 
 	data, err := a.Encode()
 	*res = &data
@@ -455,7 +455,7 @@ func (*Mining) checkAuthorized(w *Worker) (string, error) {
 		return str, err
 	}
 	w.mutex.RLock()
-	user := w.user
+	user := w.User
 	w.mutex.RUnlock()
 	if user == "" {
 		return "[24, \"Unauthorized worker\", null]", errors.New("unauthorized worker")

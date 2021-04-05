@@ -237,6 +237,30 @@ func (d *Db) GetUser(name string) (*User, error) {
 	return user, nil
 }
 
+type UserShort struct {
+	Name string
+	Host string
+	Port string
+}
+
+func (d *Db) GetAllUsersShort() ([]UserShort, error) {
+	rows, err := d.handle.Query("SELECT `u`.`name`, `p`.`host`, `p`.`port` FROM `users` AS `u` INNER JOIN `pools` AS `p` ON `u`.`pool_id` = `p`.`id`;")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var users []UserShort
+	var user UserShort
+	for rows.Next() {
+		err := rows.Scan(&user.Name, &user.Host, &user.Port)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
 /*
 GetUserByPool - the getting of the user by the pool and the user name of the pool.
 

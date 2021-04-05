@@ -24,22 +24,22 @@ Worker - it is worker. It's all.
 */
 type Worker struct {
 	mutex      sync.RWMutex
-	ua         string                 // User Agent.
-	id         string                 // ID.
-	addr       string                 // ip:port.
-	user       string                 // User.
-	hash       string                 // Name of hash.
+	Ua         string                 // User Agent.
+	Id         string                 // ID.
+	Addr       string                 // ip:port.
+	User       string                 // User.
+	Hash       string                 // Name of hash.
 	divider    float64                // Divider of hash for computing of hashrate.
 	difficulty float64                // Difficulty of job.
 	window     map[int64]float64      // Shares counter window.
 	client     *rpc2.Client           // Pointer on connection to worker.
 	extensions map[string]interface{} // Extensions of the worker.
-	pool       struct {
-		addr            string                 // ip:port.
-		user            string                 // User.
-		password        string                 // Password.
+	Pool       struct {
+		Addr            string                 // ip:port.
+		User            string                 // User.
+		Password        string                 // Password.
 		subscription    string                 // Notify-id of connection to pool.
-		ua              string                 // User Agent, that sended to pool.
+		Ua              string                 // User Agent, that sended to pool.
 		extranonce1     string                 // Extranonce1of connection to pool.
 		extranonce2size int                    // Size of Extranonce2.
 		client          *rpc2.Client           // Pointer on connection to pool.
@@ -57,7 +57,7 @@ func (w *Worker) GetAddr() string {
 	w.mutex.RLock()
 	defer w.mutex.RUnlock()
 
-	return w.addr
+	return w.Addr
 }
 
 /*
@@ -69,7 +69,7 @@ func (w *Worker) GetID() string {
 	w.mutex.RLock()
 	defer w.mutex.RUnlock()
 
-	return w.id
+	return w.Id
 }
 
 /*
@@ -90,20 +90,20 @@ func (w *Worker) Init(client *rpc2.Client) error {
 		extensions[v] = false
 	}
 
-	// Generate new id.
+	// Generate new.Id.
 	h := md5.New()
-	h.Write([]byte(w.addr + fmt.Sprint(time.Now().Unix())))
+	h.Write([]byte(w.Addr + fmt.Sprint(time.Now().Unix())))
 
 	w.mutex.Lock()
 	id := h.Sum(nil)
-	w.id = hex.EncodeToString(id[0:8])
+	w.Id = hex.EncodeToString(id[0:8])
 	w.extensions = extensions
 	w.client = client
 	// Send high difficulty to the worker. Else on slow Auth worker send to proxy big amount
 	// of shares with low difficulty. The proxy will reject these shares and worker will disconnect.
 	w.difficulty = 2097152.0
-	w.pool.extranonce2size = 8
-	w.pool.extensions = make(map[string]interface{})
+	w.Pool.extranonce2size = 8
+	w.Pool.extensions = make(map[string]interface{})
 	w.mutex.Unlock()
 
 	workers.Add(w)
@@ -129,13 +129,13 @@ func (w *Worker) Auth(user, password string) error {
 	}
 
 	w.mutex.RLock()
-	sID := w.id
-	wAddr := w.addr
-	wUser := w.user
-	pClient := w.pool.client
+	sID := w.Id
+	wAddr := w.Addr
+	wUser := w.User
+	pClient := w.Pool.client
 	w.mutex.RUnlock()
 
-	reauth := w.user != "" && w.user != us.name
+	reauth := w.User != "" && w.User != us.name
 	if reauth {
 		LogInfo("%s : change session from user %s to user %s", sID, wAddr, wUser, us.name)
 		if pClient != nil {
@@ -144,15 +144,15 @@ func (w *Worker) Auth(user, password string) error {
 	}
 
 	w.mutex.Lock()
-	if w.user == "" || reauth {
-		w.user = us.name
-		w.pool.addr = us.pool
-		w.pool.user = us.user
-		w.pool.password = us.password
-		w.hash = us.hash
+	if w.User == "" || reauth {
+		w.User = us.name
+		w.Pool.Addr = us.pool
+		w.Pool.User = us.user
+		w.Pool.Password = us.password
+		w.Hash = us.hash
 		w.divider = us.divider
 	}
-	pClient = w.pool.client
+	pClient = w.Pool.client
 	w.mutex.Unlock()
 
 	if pClient == nil {
@@ -171,16 +171,16 @@ func (w *Worker) Connect() error {
 	var status bool
 
 	w.mutex.RLock()
-	sID := w.id
-	wAddr := w.addr
-	wUser := w.user
+	sID := w.Id
+	wAddr := w.Addr
+	wUser := w.User
 	wDivider := w.divider
-	wHash := w.hash
-	pAddr := w.pool.addr
-	pClient := w.pool.client
-	pUser := w.pool.user
-	pPassword := w.pool.password
-	pSubscription := w.pool.subscription
+	wHash := w.Hash
+	pAddr := w.Pool.Addr
+	pClient := w.Pool.client
+	pUser := w.Pool.User
+	pPassword := w.Pool.Password
+	pSubscription := w.Pool.subscription
 	w.mutex.RUnlock()
 
 	pUA := "miningmeter-proxy/1.0"
@@ -218,7 +218,7 @@ func (w *Worker) Connect() error {
 
 	// Linking pool to the connection.
 	w.mutex.Lock()
-	w.pool.client = client
+	w.Pool.client = client
 	w.mutex.Unlock()
 
 	// Starting monitoring of the connection.
@@ -254,9 +254,9 @@ func (w *Worker) Connect() error {
 		return err
 	}
 	w.mutex.Lock()
-	w.pool.subscription = response.subscriptions["mining.notify"]
-	w.pool.extranonce1 = response.extranonce1
-	w.pool.extranonce2size = response.extranonce2size
+	w.Pool.subscription = response.subscriptions["mining.notify"]
+	w.Pool.extranonce1 = response.extranonce1
+	w.Pool.extranonce2size = response.extranonce2size
 	w.mutex.Unlock()
 
 	LogInfo("%s > mining.subscribe: %s, %s, %d", sID, pAddr,
@@ -320,11 +320,11 @@ func (w *Worker) SyncExtensions() bool {
 	extensions := make(map[string]interface{})
 
 	w.mutex.RLock()
-	sID := w.id
-	a := w.pool.addr
-	c := w.pool.client
+	sID := w.Id
+	a := w.Pool.Addr
+	c := w.Pool.client
 	e := w.extensions
-	pe := w.pool.extensions
+	pe := w.Pool.extensions
 	w.mutex.RUnlock()
 
 	if len(pe) > 0 {
@@ -395,7 +395,7 @@ func (w *Worker) SyncExtensions() bool {
 	}
 
 	w.mutex.Lock()
-	w.pool.extensions = extensions
+	w.Pool.extensions = extensions
 	w.mutex.Unlock()
 
 	valid := 0
@@ -421,11 +421,11 @@ UpdateData - updating of worker data.
 */
 func (w *Worker) UpdateData(force bool) bool {
 	w.mutex.RLock()
-	sID := w.id
-	a := w.addr
+	sID := w.Id
+	a := w.Addr
 	c := w.client
-	e := w.pool.extranonce1
-	e2 := w.pool.extranonce2size
+	e := w.Pool.extranonce1
+	e2 := w.Pool.extranonce2size
 	v, u := w.extensions["subscribe-extranonce"]
 	w.mutex.RUnlock()
 
@@ -474,21 +474,21 @@ func (w *Worker) Restore(id string) error {
 	w.mutex.Lock()
 	worker.mutex.Lock()
 
-	temp := worker.addr
-	worker.addr = w.addr
-	w.addr = temp
-	w.user = worker.user
-	w.hash = worker.hash
-	w.pool.addr = worker.pool.addr
+	temp := worker.Addr
+	worker.Addr = w.Addr
+	w.Addr = temp
+	w.User = worker.User
+	w.Hash = worker.Hash
+	w.Pool.Addr = worker.Pool.Addr
 	worker.client = w.client
 	w.client = nil
 	worker.client.State.Set("worker", worker)
 
-	wAddr := worker.addr
-	wUser := worker.user
+	wAddr := worker.Addr
+	wUser := worker.User
 	wDifficulty := worker.difficulty
-	wHash := worker.hash
-	pAddr := worker.pool.addr
+	wHash := worker.Hash
+	pAddr := worker.Pool.Addr
 
 	worker.mutex.Unlock()
 	w.mutex.Unlock()
@@ -518,7 +518,7 @@ func (w *Worker) IncShares() {
 	w.mutex.RLock()
 	d := w.difficulty
 	dv := w.divider
-	p := w.pool.client
+	p := w.Pool.client
 	w.mutex.RUnlock()
 
 	if p != nil {
@@ -581,11 +581,11 @@ func (w *Worker) UpdateHashrate() {
 		}
 
 		w.mutex.RLock()
-		wAddr = w.addr
-		wUser := w.user
-		wHash := w.hash
+		wAddr = w.Addr
+		wUser := w.User
+		wHash := w.Hash
 		wClient := w.client
-		pAddr := w.pool.addr
+		pAddr := w.Pool.Addr
 		w.mutex.RUnlock()
 
 		if wClient == nil {
@@ -606,9 +606,9 @@ DisconnectNotify - monitoring of connection status.
 */
 func (w *Worker) DisconnectNotify() {
 	w.mutex.RLock()
-	sID := w.id
-	a := w.pool.addr
-	p := w.pool.client
+	sID := w.Id
+	a := w.Pool.Addr
+	p := w.Pool.client
 	w.mutex.RUnlock()
 
 	LogInfo("%s : set monitoring rpc connection", sID, a)
@@ -616,7 +616,7 @@ func (w *Worker) DisconnectNotify() {
 	LogInfo("%s : rpc connection gone", sID, a)
 
 	w.mutex.RLock()
-	p = w.pool.client
+	p = w.Pool.client
 	w.mutex.RUnlock()
 
 	if p != nil {
@@ -629,8 +629,8 @@ Disconnect - disconnecting of worker.
 */
 func (w *Worker) Disconnect() {
 	w.mutex.Lock()
-	sID := w.id
-	wAddr := w.addr
+	sID := w.Id
+	wAddr := w.Addr
 	wClient := w.client
 
 	w.client = nil
@@ -654,12 +654,12 @@ func (w *Worker) Death() {
 	<-time.After(1 * time.Minute)
 
 	w.mutex.RLock()
-	sID := w.id
-	wAddr := w.addr
-	wUser := w.user
-	wHash := w.hash
+	sID := w.Id
+	wAddr := w.Addr
+	wUser := w.User
+	wHash := w.Hash
 	wClient := w.client
-	pAddr := w.pool.addr
+	pAddr := w.Pool.Addr
 	w.mutex.RUnlock()
 
 	if wClient == nil {
@@ -692,16 +692,16 @@ DisconnectPool - disconnect pool.
 */
 func (w *Worker) DisconnectPool() {
 	w.mutex.RLock()
-	sID := w.id
-	wHash := w.hash
-	pAddr := w.pool.addr
-	pClient := w.pool.client
+	sID := w.Id
+	wHash := w.Hash
+	pAddr := w.Pool.Addr
+	pClient := w.Pool.client
 	w.mutex.RUnlock()
 
 	if pClient != nil {
 		w.mutex.Lock()
-		w.pool.client = nil
-		w.pool.job = nil
+		w.Pool.client = nil
+		w.Pool.job = nil
 		w.difficulty = 2097152.0
 		w.mutex.Unlock()
 

@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Stratum Proxy</title>
+        <style>
+            body {
+                background-color: #282a36;
+                color: rgb(209,213,232);
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            #profiles {
+                margin-bottom: 0.75cm;
+            }
+            #workers-label {
+                margin-right: 0.5cm;
+            }
+        </style>
+    </head>
+    <body>
+        <label for="profiles">Выберите профиль: </label>
+        <select name="profiles" id="profiles" onchange="changepool(this.value)"></select>
+        <br>
+        <label for="workers" id=workers-label>Воркеры:</label>
+        <span id="timer">0</span><span id="secs">с.</span>
+        <ul name="workers" id="workers"></ul>
+    </body>
+    <footer>
+        <script>
+            let api = 'http://127.0.0.1:8080/api/v1'
+            var getJSON = function(url, callback) {
+                let xhr = new XMLHttpRequest();
+                xhr.withCredentials = true;
+                //xhr.setRequestHeader("Access-Control-Allow-Origin", "")
+                xhr.open('GET', url, true);
+                xhr.responseType = 'json';
+                xhr.onload = function() {
+                      var status = xhr.status;
+                      if (status === 200) {
+                        callback(null, xhr.response);
+                      } else {
+                        callback(status, xhr.response);
+                      }
+                    };
+                xhr.send();
+            };
+            getJSON(api + '/getallusers', buildselect)
+
+            function buildselect(_, json) {
+                menu = document.getElementById("profiles")
+                json.forEach(function (profile) {
+                    option = document.createElement('option')
+                    option.innerHTML += profile.Name + ' ('
+                        + profile.Host + ':' + profile.Port + ')'
+                    menu.appendChild(option)
+                })
+            }
+            
+            getJSON(api + '/getallworkers', buildlist)
+            var timerrunning = false
+            function buildlist(_, json) {
+                setTimeout(getJSON, 5000, api + '/getallworkers', buildlist)
+                if (!timerrunning) {
+                    setInterval((function () {
+                        timer = document.getElementById("timer")
+                        left = timer.innerHTML
+                        if (left == "0") {
+                            left = 5
+                        } else {
+                            left -= 1
+                        }
+                        timer.innerHTML = left
+                    }), 1000)
+                }
+                timerrunning = true
+                list = document.getElementById("workers")
+                list.innerHTML = ""
+                if (json == null) { return "" }
+                json.forEach(function (w) {
+                    li = document.createElement('li')
+                    li.innerHTML += '<b style="margin-right:0.5cm;">'
+                        + w.Addr + '@' + w.Ua + '</b> [User: ' + w.User
+                        + ', ID: ' + w.Id + '] 🠖 ' + w.PoolAddr
+                    list.appendChild(li)
+                })
+            }
+            
+            function changepool(profilefull) {
+                profile  = profilefull.split(" ")[0]
+                json = JSON.stringify({ "user": profile })
+                alert(json)
+
+                let xhr = new XMLHttpRequest();
+                xhr.withCredentials = true;
+                xhr.open('POST', api + '/changepool', true); 
+                xhr.send(json)
+            }
+        </script>
+    </footer>
+</html>

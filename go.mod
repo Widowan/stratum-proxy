@@ -3,6 +3,7 @@ module stratum-rpc
 go 1.16
 
 require (
+	github.com/abbot/go-http-auth v0.4.0 // indirect
 	github.com/cenkalti/hub v1.0.1 // indirect
 	github.com/mattn/go-sqlite3 v1.14.6 // indirect
 	github.com/miningmeter/rpc2 v0.0.0-20200213124009-62bee2a193c6 // indirect

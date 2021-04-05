@@ -14,6 +14,7 @@ import (
 
 	"net/http"
 
+	auth "github.com/abbot/go-http-auth"
 	rpc2 "github.com/miningmeter/rpc2"
 	"github.com/miningmeter/rpc2/stratumrpc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,7 +35,7 @@ var (
 	// Stratum endpoint.
 	stratumAddr = "127.0.0.1:9332"
 	// API endpoint.
-	webAddr = "127.0.0.1:8080"
+	webAddr = "127.0.0.1:12743"
 	// Out to syslog.
 	syslog = false
 	// GitCommit - Git commit for build
@@ -57,7 +58,7 @@ Main function.
 */
 func main() {
 	flag.StringVar(&stratumAddr, "stratum.addr", "127.0.0.1:9332", "Address and port for stratum")
-	flag.StringVar(&webAddr, "web.addr", "127.0.0.1:8080", "Address and port for web server and metrics")
+	flag.StringVar(&webAddr, "web.addr", "127.0.0.1:12743", "Address and port for web server and metrics")
 	flag.BoolVar(&syslog, "syslog", false, "On true adapt log to out in syslog, hide date and colors")
 	flag.StringVar(&dbPath, "db.path", "proxy.db", "Filepath for SQLite database")
 	flag.StringVar(&tag, "metrics.tag", stratumAddr, "Prometheus metrics proxy tag")
@@ -82,10 +83,21 @@ func main() {
 	http.Handle("/api/v1/users", &API{})
 	http.Handle("/api/v1/getallusers", &API{})
 	http.Handle("/api/v1/getallworkers", &API{})
+	http.Handle("/api/v1/getallhashrates", &API{})
 	http.Handle("/api/v1/changepool", &API{})
-	http.HandleFunc("/webui", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./ui.html")
-	})
+
+	authenticator := auth.NewBasicAuthenticator(
+		"Stratum proxy WebUI", auth.HtpasswdFileProvider("./htpasswd"))
+
+	http.HandleFunc("/webui", auth.JustCheck(authenticator,
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+			if origin := r.Header.Get("Origin"); origin != "" {
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+			http.ServeFile(w, r, "./ui.html")
+		}))
 	http.Handle("/metrics", promhttp.Handler())
 	go http.ListenAndServe(webAddr, nil)
 

@@ -31,6 +31,7 @@ type ShortWorker struct {
 	User     string
 	Hash     string
 	PoolAddr string
+	Hashrate float64
 }
 
 /*
@@ -117,6 +118,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			temp.User = worker.User
 			temp.Hash = worker.Hash
 			temp.PoolAddr = worker.Pool.Addr
+			temp.Hashrate = worker.Hashrate
 			result = append(result, temp)
 		}
 		j, err := json.Marshal(result)

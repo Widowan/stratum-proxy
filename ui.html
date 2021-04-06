@@ -96,7 +96,7 @@
             }
             let form = document.getElementById("add_profile")
             form.addEventListener('submit', createNewUser)
-            var api = window.location.host + '/api/v1'
+            var api = 'http://' + window.location.host + '/api/v1'
             var getJSON = function(url, callback) {
                 let xhr = new XMLHttpRequest();
                 xhr.withCredentials = true;

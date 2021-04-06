@@ -11,7 +11,7 @@
                 white-space: nowrap;
             }
             #profiles {
-                margin-bottom: 0.75cm;
+                margin-bottom: 1.5em;
             }
             #workers-label {
                 margin-right: 0.5cm;
@@ -20,11 +20,41 @@
             #workers * {
                 font-family: monospace;
             }
+            #grid {
+                display: grid;
+                width: 9em;
+                grid-column: 3;
+            }
+            #grid p {
+                grid-row: 2;
+                margin-top: 0.3em;
+            }
+            #grid input {
+                grid-row: 1;
+                margin-right: 0.5em;
+            }
+            #submit {
+                margin-bottom: 1.5em;
+            }
         </style>
     </head>
     <body>
         <label for="profiles">Выберите профиль: </label>
         <select name="profiles" id="profiles" onchange="changepool(this.value)"></select>
+        <br>
+        <form id=add_profile>
+            <label for="add_profile">Добавить новый профиль:</label>
+            <span id=grid>
+                <input type=text id=pool placeholder="stratum.slushpool.com:3333">
+                <p>Адрес пула</p>
+                <input type=text id=user placeholder=Bob>
+                <p>Юзернейм</p>
+                <input type=text id=pass placeholder=d34db33f>
+                <p>Пароль</p>
+            </span>
+            <button type="submit" id=submit>Добавить</button>
+            <span id=submit_result></span>
+        </form>
         <br>
         <label for="workers" id=workers-label title="Обновление хэшрейта может занять до пяти минут.">Воркеры:</label>
         <span id="timer">0</span><span id="secs">с.</span>
@@ -32,11 +62,44 @@
     </body>
     <footer>
         <script>
-            let api = 'http://127.0.0.1:12743/api/v1'
+
+            function sendJSON(ep, json, callback) {
+                let xhr = new XMLHttpRequest();
+                xhr.withCredentials = true;
+                xhr.open('POST', ep, true); 
+                xhr.responseType = 'json'
+                xhr.send(json)
+                xhr.onload = function() {
+                    if (callback != undefined) {
+                        callback(xhr.response)
+                    }
+                }
+            }
+            function createNewUser(event) {
+                event.preventDefault()
+                sendJSON(api + '/users', 
+                JSON.stringify({
+                    "pool": document.getElementById('pool').value,
+                    "user": document.getElementById('user').value,
+                    "password": document.getElementById('pass').value   
+                }), function(r){if (r.error == "") {
+                        sr = document.getElementById("submit_result")
+                        sr.innerHTML = "Успешно"
+                        setTimeout(function(sri){
+                            sri.innerHTML = ""
+                        }, 3000, sr)
+                        getJSON(api + '/getallusers', buildselect)
+                    } else {
+                        sr = document.getElementById("submit_result")
+                        sr.innerHTML = r.error
+                    }})
+            }
+            let form = document.getElementById("add_profile")
+            form.addEventListener('submit', createNewUser)
+            var api = 'http://127.0.0.1:12743/api/v1'
             var getJSON = function(url, callback) {
                 let xhr = new XMLHttpRequest();
                 xhr.withCredentials = true;
-                //xhr.setRequestHeader("Access-Control-Allow-Origin", "")
                 xhr.open('GET', url, true);
                 xhr.responseType = 'json';
                 xhr.onload = function() {
@@ -53,6 +116,8 @@
 
             function buildselect(_, json) {
                 menu = document.getElementById("profiles")
+                menu.innerHTML = ""
+                if (json == null) { return "" }
                 json.forEach(function (profile) {
                     option = document.createElement('option')
                     option.innerHTML += profile.Name + ' ('
@@ -92,12 +157,7 @@
             
             function changepool(profilefull) {
                 profile  = profilefull.split(" ")[0]
-                json = JSON.stringify({ "user": profile })
-
-                let xhr = new XMLHttpRequest();
-                xhr.withCredentials = true;
-                xhr.open('POST', api + '/changepool', true); 
-                xhr.send(json)
+                sendJSON(JSON.stringify({ "user": profile }))
             }
         </script>
     </footer>

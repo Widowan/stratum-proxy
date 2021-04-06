@@ -5,7 +5,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	// "fmt"
@@ -58,7 +57,6 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var p Pool
 		decoder := json.NewDecoder(r.Body)
 		err = decoder.Decode(&p)
-		fmt.Printf("%+v\n", p)
 		if err == nil {
 			LogInfo("proxy : API request to add user with pool %s and credentials %s:%s", "", p.Pool, p.User, p.Password)
 			var user *User
@@ -106,7 +104,11 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.Write([]byte(`{"error":"` + err.Error() + `"}`))
 		}
-		w.Write([]byte(j))
+		if len(users) != 0 {
+			w.Write([]byte(j))
+		} else {
+			w.Write([]byte(`{}`))
+		}
 	} else if u.Path == "/api/v1/getallworkers" {
 		var result []ShortWorker
 		var temp ShortWorker
